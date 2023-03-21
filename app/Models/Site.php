@@ -13,8 +13,8 @@ class Site extends Model
         'name'
     ];
 
-    public function accounts()
+    public function account()
     {
-        return $this->morphMany(Account::class, 'accountable');
+        return $this->morphOne(Account::class, 'accountable');
     }
 }

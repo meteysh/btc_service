@@ -42,9 +42,9 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
     ];
 
-    public function accounts()
+    public function account()
     {
-        return $this->morphMany(Account::class, 'accountable');
+        return $this->morphOne(Account::class, 'accountable');
     }
 
     public function cashback()

@@ -29,7 +29,7 @@ return new class extends Migration {
             $table->string('accountable_type');
             $table->unsignedBigInteger('accountable_id');
             $table->unique(['accountable_type', 'accountable_id']);
-            $table->decimal('balance', 21, 11)->default(0.00);
+            $table->unsignedDecimal('balance', 21, 11)->default(0.00);
             $table->timestamps();
         });
         Schema::create('transactions', function (Blueprint $table) {

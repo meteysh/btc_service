@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BtcController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/user/{id}', [BtcController::class, 'show'])->where('id', '[0-9]+');
+Route::post('/from_user', [BtcController::class, 'depositFromUserAccount']);
+Route::post('/to_partner', [BtcController::class, 'depositPartnerAccount']);
+Route::post('/to_cashback', [BtcController::class, 'depositCashbackAccount']);
+

@@ -41,4 +41,14 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    public function accounts()
+    {
+        return $this->morphMany(Account::class, 'accountable');
+    }
+
+    public function cashback()
+    {
+        return $this->hasOne(Cashback::class);
+    }
 }

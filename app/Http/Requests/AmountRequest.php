@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class BalanceRequest extends FormRequest
+class AmountRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -24,21 +24,21 @@ class BalanceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'balance' => 'required|regex:/^\d*(\.\d{1,11})?$/',
+            'amount' => 'required|regex:/^\d*(\.\d{1,11})?$/',
             'id' => 'required|integer'
         ];
     }
 
     protected function passedValidation(): void
     {
-        $balance = $this->input('balance');
+        $amount = $this->input('amount');
         $id = $this->input('id');
 
-        $processedBalance = (float)$balance;
+        $processedAmount = (float)$amount;
         $processedId = (int)$id;
 
         $this->replace([
-            'balance' => $processedBalance,
+            'amount' => $processedAmount,
             'id' => $processedId,
         ]);
     }

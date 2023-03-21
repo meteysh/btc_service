@@ -61,7 +61,7 @@
         <form  id="transfer" method="POST" action="/from_user">
             @csrf
             <label for="balance">Сумма</label>
-            <p><input   id="transfer" type="text"  name="balance" class="@error('balance') is-invalid @enderror"></p>
+            <p><input   id="transfer" type="text"  name="amount" class="@error('balance') is-invalid @enderror"></p>
             <input  id="transfer" type="hidden" name="id" value="{{ $userId }}" class="@error('id') is-invalid @enderror">
             @error('balance')
             <div style="color: red;" class="alert alert-danger">{{ $message }}</div>

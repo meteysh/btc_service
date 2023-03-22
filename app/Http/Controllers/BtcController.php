@@ -28,22 +28,17 @@ class BtcController extends Controller
      */
     public function show(int $id)
     {
-        try {
-            $user = User::findOrFail($id);
-            $partner = Partner::findOrFail(1);
-            $site = Site::findOrFail(1);
-            $cashback = $user->cashback;
-            $data = [
-                'userId' => $id,
-                'userBalance' => $user->account->balance,
-                'partnerBalance' => $partner->account->balance,
-                'siteBalance' => $site->account->balance,
-                'cashbackBalance' => $cashback->account->balance,
-            ];
-        } catch (ModelNotFoundException $e) {
-            $modelName = str_replace('App\Models\\', '', $e->getModel());
-            return response($modelName . ' не найден', 404);
-        }
+        $user = User::findOrFail($id);
+        $partner = Partner::findOrFail(1);
+        $site = Site::findOrFail(1);
+        $cashback = $user->cashback;
+        $data = [
+            'userId' => $id,
+            'userBalance' => $user->account->balance,
+            'partnerBalance' => $partner->account->balance,
+            'siteBalance' => $site->account->balance,
+            'cashbackBalance' => $cashback->account->balance,
+        ];
         return view('index', $data);
     }
 

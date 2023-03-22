@@ -17,6 +17,7 @@ class BtcService
     const COMISSION_PERCENT = 0.01;
     const PARTNER_PERCENT = 0.05;
     const CASHBACK_PERCENT = 0.10;
+    const SATOSHI = 0.00000001;
 
     private CashbackRepository $cashbackRepository;
     private PartnerRepository $partnerRepository;
@@ -82,8 +83,14 @@ class BtcService
             $user = $this->userRepository->getUserById($userId);
             $cashback = $this->cashbackRepository->getCashbackById($userId);
             $amount = $cashback->account->balance;
+            if ($amount < self::SATOSHI) {
+                throw new TransactionException('Не достаточное количество сатоши.');
+            }
             $this->transferBtc($amount, $cashback, $user);
             DB::commit();
+        } catch (TransactionException $e) {
+            DB::rollBack();
+            throw new TransactionException($e->getMessage());
         } catch (Exception $e) {
             DB::rollBack();
             throw new TransactionException('Транзакция не удалась');

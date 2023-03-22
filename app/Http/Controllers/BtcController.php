@@ -3,153 +3,99 @@
 namespace App\Http\Controllers;
 
 
-use App\Http\Requests\BalanceRequest;
-use App\Models\Account;
-use App\Models\Cashback;
-use App\Models\Page;
+use App\Exceptions\TransactionException;
+use App\Http\Requests\AmountRequest;
 use App\Models\Partner;
 use App\Models\Site;
-use App\Models\Transaction;
 use App\Models\User;
-use Exception;
+use App\Services\BtcService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redirect;
 
 class BtcController extends Controller
 {
-    const COMISSION_PERCENT = 0.01;
-    const PARTNER_PERCENT = 0.05;
-    const CASHBACK_PERCENT = 0.10;
+    private BtcService $btcService;
 
+    public function __construct(BtcService $btcService)
+    {
+        $this->btcService = $btcService;
+    }
+
+    /**
+     * @param int $id
+     * @return mixed
+     */
     public function show(int $id)
     {
-        $amount = 100;
-        DB::beginTransaction();
         try {
-            $partnerId = 1;
-            $partner = Partner::find($partnerId);
-            $partnerAccount = $partner->account;
-            $partnerAccountId = $partnerAccount->id;
-
-            $site = Site::find(1);
-            $siteAccount = $site->account;
-            $siteAccountId = $siteAccount->id;
-
-            $amountOut = $amount * (1 - self::COMISSION_PERCENT);
-            $amountSite = $amount * self::COMISSION_PERCENT;
-
-            $user = User::find($id);
-            $userAccount = $user->account;
-            $userAccountId = $userAccount->id;
-
-            $userAccount->decrement('balance', $amountOut);
-            //->increment() нет т.к. просто показательно списываем куда-то
-            $this->saveTransactionHistory($amountOut, $userAccountId);
-
-            $userAccount->decrement('balance', $amountSite);
-            $siteAccount->increment('balance', $amountSite);
-            $this->saveTransactionHistory($amountSite, $userAccountId, $siteAccountId);
-
+            $user = User::findOrFail($id);
+            $partner = Partner::findOrFail(1);
+            $site = Site::findOrFail(1);
             $cashback = $user->cashback;
-            $cashbackAccount = $cashback->account;
-            $cashbackAccountId = $cashbackAccount->id;
-
-            $amountPartner = $amountSite * self::PARTNER_PERCENT;
-            $amountCashback = $amountSite * self::CASHBACK_PERCENT;
-
-            $siteAccount->decrement('balance', $amountPartner);
-            $partnerAccount->increment('balance', $amountPartner);
-            $this->saveTransactionHistory($amountPartner, $siteAccountId, $partnerAccountId);
-
-            $siteAccount->decrement('balance', $amountCashback);
-            $cashbackAccount->increment('balance', $amountCashback);
-            $this->saveTransactionHistory($amountCashback, $siteAccountId, $cashbackAccountId);
-
-            DB::commit();
-        }catch(Exception $e){
-            DB::rollBack();
-            echo $e->getMessage();
-        }
-        echo 555;
-        //$user->save();
-        //dd($user);
-//        $user = Cashback::find(1);
-//
-//        $account = new Account();
-//        $account->balance = 1100;
-//
-//        //$user->accounts()->save($account);
-//
-//        //dd($user);
-        try {
-//            $user = User::find($id);
-//            $userBalance = $user->userBalance();
-//            $userBalance->decrement('cashback_balance', 0.0);
-//            $userBalance->decrement('balance', 0.0);
-
+            $data = [
+                'userId' => $id,
+                'userBalance' => $user->account->balance,
+                'partnerBalance' => $partner->account->balance,
+                'siteBalance' => $site->account->balance,
+                'cashbackBalance' => $cashback->account->balance,
+            ];
         } catch (ModelNotFoundException $e) {
-            return response('Пользователь не найден', 404);
+            $modelName = str_replace('App\Models\\', '', $e->getModel());
+            return response($modelName . ' не найден', 404);
         }
-
-        $data = [
-            'userId' => $id,
-            'userBalance' => 111,
-            'partnerBalance' => 222,
-            'siteBalance' => 333,
-            'cashbackBalance' => 444,
-        ];
         return view('index', $data);
     }
 
-    public function depositFromUserAccount(BalanceRequest $request)
+    /**
+     * Делаем перевод со счета пользователя на счета партнера,
+     * сайта и на счет кэшбэка
+     *
+     * @param AmountRequest $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function depositFromUserAccount(AmountRequest $request)
     {
-
-        $balance = $request->input('balance');
+        $amount = $request->input('amount');
         $userId = $request->input('id');
-        dd($balance, $userId);
-        $comission = $balance * self::COMISSION_PERCENT;
-
-        $userBalance = 11;
-        $cashbackBalance = $comission * self::CASHBACK_PERCENT;
-        $siteBalance = $comission;// зачислить
-        $partnerBalance = $comission * self::PARTNER_PERCENT;
-
-        $data = [
-            'userBalance' => $balance,
-            'partnerBalance' => 222,
-            'siteBalance' => 333,
-            'cashbackBalance' => 444,
-        ];
-        return view('index', $data);
+        try {
+            $this->btcService->fromUserTransfer($userId, $amount);
+        } catch (TransactionException $e) {
+            return Redirect::back()->withErrors(['error' => $e->getMessage()]);
+        }
+        return back();
     }
 
-    public function depositPartnerAccount(Request $request)
+    /**
+     * Партнер забирает биткоины со своего счета
+     *
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function depositPartnerAccount()
     {
-        echo 5555;
+        $partnerId = 1;
+        try {
+            $this->btcService->fromPartnerTransfer($partnerId);
+        } catch (TransactionException $e) {
+            return Redirect::back()->withErrors(['error' => $e->getMessage()]);
+        }
+        return back();
     }
 
+    /**
+     * Возвращаем кэшбэк на счет пользователя
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function depositCashbackAccount(Request $request)
     {
-        echo 9999;
-    }
-
-    private function saveTransactionHistory($amount, $fromId, $toId = null)
-    {
-        $transaction = new Transaction();
-        $transaction->from_id = $fromId;
-        $transaction->to_id = $toId;
-        $transaction->amount = $amount;
-        $transaction->save();
-    }
-
-    private function transferBtc($from, $to, $amount)
-    {
-        $fromAccount = $from->account;
-        $toAccount = $to->account;
-        $fromAccount->decrement('balance', $amount);
-        $toAccount->increment('balance', $amount);
-        $this->saveTransactionHistory($amount, $fromAccount->id, $toAccount->id);
+        try {
+            $userId = $request->input('id');
+            $this->btcService->getCashback($userId);
+        } catch (TransactionException $e) {
+            return Redirect::back()->withErrors(['error' => $e->getMessage()]);
+        }
+        return back();
     }
 }

@@ -61,9 +61,9 @@
         <form  id="transfer" method="POST" action="/from_user">
             @csrf
             <label for="balance">Сумма</label>
-            <p><input   id="transfer" type="text"  name="amount" class="@error('balance') is-invalid @enderror"></p>
+            <p><input   id="transfer" type="text"  name="amount" class="@error('amount') is-invalid @enderror"></p>
             <input  id="transfer" type="hidden" name="id" value="{{ $userId }}" class="@error('id') is-invalid @enderror">
-            @error('balance')
+            @error('amount')
             <div style="color: red;" class="alert alert-danger">{{ $message }}</div>
             @enderror
             @error('id')
@@ -86,7 +86,13 @@
             @csrf
             <p class="balance_cashback"><label for="balance_cashback">Кэшбэк пользователя</label></p>
             <p><input id="transfer_cashback"  class="balance_cashback" id="balance_cashback" type="text"  name="balance_cashback" value="{{ $cashbackBalance }}" readonly></p>
+            <input  id="transfer_cashback" type="hidden" name="id" value="{{ $userId }}">
             <p><input class="balance_cashback" type="submit" value="Вернуть"></p>
         </form>
+        @if ($errors->has('error'))
+            <div class="alert alert-danger" style="color: red;">
+                {{ $errors->first('error') }}
+            </div>
+        @endif
     </body>
 </html>

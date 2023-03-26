@@ -57,7 +57,7 @@
     </head>
     <body class="antialiased">
         <p class="balance">Баланс пользователя</p>
-        <p class="balance">{{ $userBalance }}</p>
+        <p id="transfer_user" class="balance">{{ $userBalance }}</p>
         <form  id="transfer" method="POST" action="/from_user">
             @csrf
             <label for="balance">Сумма</label>
